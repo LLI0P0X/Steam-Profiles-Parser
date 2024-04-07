@@ -3,3 +3,4 @@
 temp*
 *.xlsx
 data.db
+/__pycache__

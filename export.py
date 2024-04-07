@@ -25,29 +25,20 @@ def safeName(name):
     return ''.join(filter(flt, name)).replace(' ', '_')
 
 
-gbl = globals()
-row = 0
-
-
 def toExcel(data, name):
     name = safeName(name)
-    gbl = globals()
-    row = gbl['row']
-    if row:
-        wb = openpyxl.load_workbook(os.path.join(pathOut, f'{name}.xlsx'))
-        ws = wb.get_sheet_by_name('data')
-    else:
-        wb = openpyxl.Workbook()
-        ws = wb.create_sheet('data')
-        wb.remove(wb.get_sheet_by_name('Sheet'))
-    for col in range(len(data)):
-        d = data[col]
-        if len(d) == 0:
-            continue
-        if d[0] == '=':
-            d = "'" + d
-        ws.cell(row + 1, col + 1, d)
-    gbl['row'] += 1
+    wb = openpyxl.Workbook()
+    ws = wb.create_sheet('data')
+    wb.remove(wb.get_sheet_by_name('Sheet'))
+    for row in range(len(data)):
+        print(data[row])
+        for col in range(len(data[row])):
+            d = data[row][col]
+            if len(d) == 0:
+                continue
+            if d[0] == '=':
+                d = "'" + d
+            ws.cell(row + 1, col + 1, d)
     wb.save(os.path.join(pathOut, f'{name}.xlsx'))
     return f'{os.path.join(pathOut, name)}.xlsx'
 

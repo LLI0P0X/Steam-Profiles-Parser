@@ -1,6 +1,7 @@
 import aiohttp
 import asyncio
 from bs4 import BeautifulSoup
+
 import export
 
 new_list = [['first', 'second'], ['third', 'four'], [1, 2, 3, 4, 5, 6]]
@@ -20,12 +21,18 @@ async def getSessionId():
 
 
 async def getLinksFromSteam(name, cookies, match=0):
-    links, nLinks = await getLinksFromSteamPage(name, 1, cookies, match=match)
+    links, nLinks, none = await getLinksFromSteamPage(name, 1, cookies, match=match)
     aioTasks = []
-    aioTasks.append(getDataByLinks(links, name))
+    aioTasks.append(getDataByLinks(links))
     for page in range(2, nLinks // 20 + 2):
         aioTasks.append(asyncio.create_task(getLinksFromSteamPage(name, page, cookies, match=match)))
-    await asyncio.gather(*aioTasks)
+    gath = await asyncio.gather(*aioTasks)
+    allData = gath[0]
+    for data in gath[1:]:
+        allData+=data[2]
+    for q in allData:
+        print(q)
+    export.toExcel(allData, name)
     return nLinks
 
 
@@ -43,8 +50,10 @@ async def getLinksFromSteamPage(name, page, cookies, match=0):
             if match == 0 or match == 1 and a.text.lower() == name.lower() or match == 2 and a.text == name:
                 links.append(a['href'])
         if page != 1:
-            await getDataByLinks(links, name)
-        return links, jsn['search_result_count']
+            data = await getDataByLinks(links)
+        else:
+            data = None
+        return links, jsn['search_result_count'], data
 
 
 async def getPageFromSteam(url, i=0):
@@ -69,7 +78,6 @@ async def getNicksFromSteam(url, i=0):
             if '<!DOCTYPE html>' in await resp.text():
                 return True
             jsn = await resp.json()
-            jsn = await resp.json()
             return jsn
     except Exception as err:
         if i < 3:
@@ -80,7 +88,7 @@ async def getNicksFromSteam(url, i=0):
             return False
 
 
-async def getDataFromSteam(url, fName):
+async def getDataFromSteam(url):
     print(url)
     data = [url]
     nicks = []
@@ -115,8 +123,7 @@ async def getDataFromSteam(url, fName):
         while len(nicks) < 10:
             nicks.append('')
     toTable = data + nicks
-    export.toExcel(toTable, fName)
-    return True
+    return toTable
 
 
 async def getPagesByLinks(links):
@@ -150,8 +157,10 @@ async def getNicksByLinks(links):
     return True
 
 
-async def getDataByLinks(links, name):
+async def getDataByLinks(links):
     print(links)
+    data=[]
     for l in links:
-        await getDataFromSteam(l, name)
-    return True
+        d= await getDataFromSteam(l)
+        data.append(d)
+    return data
